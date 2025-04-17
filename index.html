@@ -1,13 +1,797 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Billionaire Spending Game</title>
+    <title>Spend The Billionaire's Money</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+        }
+        .money-counter {
+            font-family: monospace;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .billionaire-card {
+            transition: transform 0.3s ease;
+        }
+        .billionaire-card:hover {
+            transform: scale(1.05);
+        }
+        .item-card {
+            transition: all 0.3s ease;
+        }
+        .item-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .counter-btn {
+            width: 30px;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background-color: #e5e7eb;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .counter-btn:hover {
+            background-color: #d1d5db;
+        }
+        .counter-num {
+            min-width: 40px;
+            text-align: center;
+        }
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        #moneyDisplay {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: white;
+            transition: background 0.3s ease;
+        }
+        #moneyDisplay.negative {
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+        }
+        .category-btn.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3b82f6;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
 </head>
-<body>
-    <h1>Welcome to the Billionaire Spending Game!</h1>
-    <p>This is a placeholder version. The real game will be here soon.</p>
+<body class="min-h-screen">
+    <div id="selectionScreen" class="container mx-auto px-4 py-8">
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-bold mb-4 text-blue-600">Spend The Billionaire's Money</h1>
+            <p class="text-xl text-gray-600">Choose a billionaire and start spending their fortune!</p>
+        </div>
+        
+        <div id="billionaireSelection" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-8">
+            <!-- Billionaires will be dynamically inserted here -->
+            <div class="col-span-full flex justify-center items-center p-12">
+                <div class="loader"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="gameScreen" class="hidden">
+        <header class="sticky-header bg-white shadow-md">
+            <div class="container mx-auto px-4 py-4">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="flex items-center mb-4 md:mb-0">
+                        <button id="backButton" class="mr-4 text-blue-600 hover:text-blue-800">
+                            <i class="fas fa-arrow-left text-xl"></i>
+                        </button>
+                        <div>
+                            <h2 id="billionaireName" class="text-2xl font-bold"></h2>
+                        </div>
+                    </div>
+                    <div id="moneyDisplay" class="px-6 py-3 rounded-full text-xl font-bold shadow-lg">
+                        <span id="moneyLeft"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="container mx-auto px-4 py-2 overflow-x-auto whitespace-nowrap">
+                <div class="flex space-x-2 pb-2">
+                    <button class="category-btn px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-500 hover:text-white transition-colors" data-category="all">All Items</button>
+                    <button class="category-btn px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-500 hover:text-white transition-colors" data-category="everyday">Everyday</button>
+                    <button class="category-btn px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-500 hover:text-white transition-colors" data-category="cars">Cars</button>
+                    <button class="category-btn px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-500 hover:text-white transition-colors" data-category="mansions">Mansions</button>
+                    <button class="category-btn px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-500 hover:text-white transition-colors" data-category="yachts">Yachts</button>
+                    <button class="category-btn px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-500 hover:text-white transition-colors" data-category="islands">Islands</button>
+                    <button class="category-btn px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-500 hover:text-white transition-colors" data-category="experiences">Experiences</button>
+                    <button class="category-btn px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-500 hover:text-white transition-colors" data-category="art">Art & Collectibles</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="container mx-auto px-4 py-8">
+            <div id="itemsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <!-- Items will be dynamically inserted here -->
+            </div>
+        </main>
+
+        <footer class="bg-white py-6 shadow-inner mt-8">
+            <div class="container mx-auto px-4">
+                <button id="viewReceiptBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg transition-colors">
+                    View Receipt
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <div id="receiptModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-screen overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-2xl font-bold">Your Receipt</h3>
+                    <button id="closeReceiptBtn" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div id="receiptContent" class="divide-y">
+                    <!-- Receipt items will be inserted here -->
+                </div>
+                
+                <div class="mt-6 pt-4 border-t-2 border-gray-200">
+                    <div class="flex justify-between text-xl font-bold">
+                        <span>Total Spent:</span>
+                        <span id="totalSpent"></span>
+                    </div>
+                    <div class="flex justify-between text-xl font-bold mt-2">
+                        <span>Money Left:</span>
+                        <span id="receiptMoneyLeft"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data for billionaires
+        const billionaires = [
+            {
+                id: 1,
+                name: "Elon Musk",
+                netWorth: 300000000000,
+                image: "https://upload.wikimedia.org/wikipedia/commons/3/34/Elon_Musk_Royal_Society_%28crop2%29.jpg"
+            },
+            {
+                id: 2,
+                name: "Jeff Bezos",
+                netWorth: 195000000000,
+                image: "https://upload.wikimedia.org/wikipedia/commons/9/9d/Jeff_Bezos_2018.jpg"
+            },
+            {
+                id: 3,
+                name: "Mark Zuckerberg",
+                netWorth: 180000000000,
+                image: "https://upload.wikimedia.org/wikipedia/commons/1/18/Mark_Zuckerberg_F8_2019_Keynote_%2832830578717%29_%28cropped%29.jpg"
+            },
+            {
+                id: 4,
+                name: "Warren Buffett",
+                netWorth: 155000000000,
+                image: "https://upload.wikimedia.org/wikipedia/commons/d/d4/Warren_Buffett_at_the_2015_SelectUSA_Investment_Summit.jpg"
+            },
+            {
+                id: 5,
+                name: "Bill Gates",
+                netWorth: 150000000000,
+                image: "https://upload.wikimedia.org/wikipedia/commons/a/a8/Bill_Gates_2017_%28cropped%29.jpg"
+            },
+            {
+                id: 6,
+                name: "Larry Ellison",
+                netWorth: 143000000000,
+                image: "https://upload.wikimedia.org/wikipedia/commons/0/00/Larry_Ellison_picture.png"
+            },
+            {
+                id: 7,
+                name: "Bernard Arnault",
+                netWorth: 138000000000,
+                image: "https://upload.wikimedia.org/wikipedia/commons/d/de/Bernard_Arnault_%283%29_-_2017_%28cropped%29.jpg"
+            },
+            {
+                id: 8,
+                name: "Larry Page",
+                netWorth: 130000000000,
+                image: "https://upload.wikimedia.org/wikipedia/commons/e/ec/Larry_Page_in_the_European_Parliament%2C_17.06.2009_%28cropped%29.jpg"
+            },
+            {
+                id: 9,
+                name: "Sergey Brin",
+                netWorth: 125000000000,
+                image: "https://upload.wikimedia.org/wikipedia/commons/a/a2/Sergey_Brin_cropped.jpg"
+            },
+            {
+                id: 10,
+                name: "Steve Ballmer",
+                netWorth: 120000000000,
+                image: "https://upload.wikimedia.org/wikipedia/commons/a/a6/Steve_Ballmer_at_CES_2010_cropped.jpg"
+            }
+        ];
+
+        // Data for items to purchase
+        const items = [
+            // Everyday Items
+            {
+                id: 1,
+                name: "Cup of Coffee",
+                price: 5,
+                image: "https://images.unsplash.com/photo-1541167760496-1628856ab772?q=80&w=200",
+                category: "everyday",
+                description: "A simple cup of premium coffee."
+            },
+            {
+                id: 2,
+                name: "Smartphone",
+                price: 1000,
+                image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=200",
+                category: "everyday",
+                description: "The latest flagship smartphone with all features."
+            },
+            {
+                id: 3,
+                name: "Gaming PC",
+                price: 5000,
+                image: "https://images.unsplash.com/photo-1593640408182-31c70c8268f5?q=80&w=200",
+                category: "everyday",
+                description: "High-end gaming computer with the latest components."
+            },
+            {
+                id: 4,
+                name: "Designer Outfit",
+                price: 10000,
+                image: "https://images.unsplash.com/photo-1539008835657-9e8e9680c956?q=80&w=200",
+                category: "everyday",
+                description: "Complete luxury designer outfit from head to toe."
+            },
+            {
+                id: 5,
+                name: "Diamond Watch",
+                price: 50000,
+                image: "https://images.unsplash.com/photo-1619946794135-5bc917a27793?q=80&w=200",
+                category: "everyday",
+                description: "Luxury timepiece with diamonds and precious metals."
+            },
+            
+            // Cars
+            {
+                id: 6,
+                name: "Tesla Model S Plaid",
+                price: 130000,
+                image: "https://images.unsplash.com/photo-1617788138017-80ad40651399?q=80&w=200",
+                category: "cars",
+                description: "The fastest production electric car in the world."
+            },
+            {
+                id: 7,
+                name: "Lamborghini Aventador",
+                price: 500000,
+                image: "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?q=80&w=200",
+                category: "cars",
+                description: "Italian super sports car with aggressive styling."
+            },
+            {
+                id: 8,
+                name: "Bugatti Chiron",
+                price: 3000000,
+                image: "https://images.unsplash.com/photo-1566473965997-3de9c817e938?q=80&w=200",
+                category: "cars",
+                description: "One of the fastest and most exclusive hypercars ever made."
+            },
+            {
+                id: 9,
+                name: "Rolls-Royce Phantom",
+                price: 460000,
+                image: "https://images.unsplash.com/photo-1632548260498-b7626007997d?q=80&w=200",
+                category: "cars",
+                description: "The pinnacle of automotive luxury and comfort."
+            },
+            {
+                id: 10,
+                name: "Ferrari LaFerrari",
+                price: 2500000,
+                image: "https://images.unsplash.com/photo-1583121274602-3e2820c69888?q=80&w=200",
+                category: "cars",
+                description: "Limited production hybrid sports car by Ferrari."
+            },
+            {
+                id: 11,
+                name: "Rolls-Royce Boat Tail",
+                price: 28000000,
+                image: "https://images.unsplash.com/photo-1627617479874-c69ffef31d51?q=80&w=200",
+                category: "cars",
+                description: "One of the most expensive new cars ever created, with nautical-inspired design."
+            },
+
+            // Mansions
+            {
+                id: 12,
+                name: "Beverly Hills Mansion",
+                price: 50000000,
+                image: "https://images.unsplash.com/photo-1505843513577-22bb7d21e455?q=80&w=200",
+                category: "mansions",
+                description: "Luxury estate in Beverly Hills with 10 bedrooms and 15 bathrooms."
+            },
+            {
+                id: 13,
+                name: "Manhattan Penthouse",
+                price: 100000000,
+                image: "https://images.unsplash.com/photo-1610641818989-c2051b5e2cfd?q=80&w=200",
+                category: "mansions",
+                description: "Full-floor penthouse with 360° views of New York City."
+            },
+            {
+                id: 14,
+                name: "The One Bel Air",
+                price: 295000000,
+                image: "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?q=80&w=200",
+                category: "mansions",
+                description: "The largest and most expensive home in Urban America at 105,000 square feet."
+            },
+            {
+                id: 15,
+                name: "French Riviera Villa",
+                price: 120000000,
+                image: "https://images.unsplash.com/photo-1577495508326-19a1b3cf65b1?q=80&w=200",
+                category: "mansions",
+                description: "Spectacular villa on the French Riviera with private beach access."
+            },
+            {
+                id: 16,
+                name: "London Mayfair Mansion",
+                price: 250000000,
+                image: "https://images.unsplash.com/photo-1574362848149-11496d93a7c7?q=80&w=200",
+                category: "mansions",
+                description: "Historic mansion in London's most exclusive neighborhood."
+            },
+
+            // Yachts
+            {
+                id: 17,
+                name: "Luxury Yacht",
+                price: 50000000,
+                image: "https://images.unsplash.com/photo-1601281406305-8bfc8027c093?q=80&w=200",
+                category: "yachts",
+                description: "80-meter luxury yacht with helipad and swimming pool."
+            },
+            {
+                id: 18,
+                name: "Eclipse Superyacht",
+                price: 1500000000,
+                image: "https://images.unsplash.com/photo-1599003037782-afb27a57779c?q=80&w=200",
+                category: "yachts",
+                description: "One of the world's largest private yachts at 162.5 meters with submarine and missile defense system."
+            },
+            {
+                id: 19,
+                name: "Azzam Megayacht",
+                price: 600000000,
+                image: "https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?q=80&w=200",
+                category: "yachts",
+                description: "The world's longest private yacht at 180 meters with incredibly fast speed for its size."
+            },
+            {
+                id: 20,
+                name: "History Supreme",
+                price: 4800000000,
+                image: "https://images.unsplash.com/photo-1575986711002-b1e7452c8b17?q=80&w=200",
+                category: "yachts",
+                description: "The most expensive yacht ever built, featuring 100,000 kg of gold and platinum."
+            },
+
+            // Private Islands
+            {
+                id: 21,
+                name: "Caribbean Private Island",
+                price: 30000000,
+                image: "https://images.unsplash.com/photo-1545579133-99bb5ab189bd?q=80&w=200",
+                category: "islands",
+                description: "10-acre private island in the Caribbean with white sand beaches and villa."
+            },
+            {
+                id: 22,
+                name: "Lanai Island, Hawaii",
+                price: 610000000,
+                image: "https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?q=80&w=200",
+                category: "islands",
+                description: "The sixth-largest Hawaiian island, featuring 90,000 acres of land."
+            },
+            {
+                id: 23,
+                name: "Necker Island",
+                price: 100000000,
+                image: "https://images.unsplash.com/photo-1573790387438-4da905039392?q=80&w=200",
+                category: "islands",
+                description: "Richard Branson's famous private island paradise in the British Virgin Islands."
+            },
+            {
+                id: 24,
+                name: "Fiji Island Archipelago",
+                price: 70000000,
+                image: "https://images.unsplash.com/photo-1494791368093-85217d17b0a3?q=80&w=200",
+                category: "islands",
+                description: "Collection of pristine islands in Fiji with crystal clear waters."
+            },
+
+            // Experiences
+            {
+                id: 25,
+                name: "Private SpaceX Trip",
+                price: 55000000,
+                image: "https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?q=80&w=200",
+                category: "experiences",
+                description: "Trip to the International Space Station on a SpaceX Dragon spacecraft."
+            },
+            {
+                id: 26,
+                name: "Around the World by Private Jet",
+                price: 1000000,
+                image: "https://images.unsplash.com/photo-1540962351504-03099e0a754b?q=80&w=200",
+                category: "experiences",
+                description: "Luxury 3-week journey to iconic destinations on a private customized Boeing 757."
+            },
+            {
+                id: 27,
+                name: "Super Bowl Suite & After Party",
+                price: 500000,
+                image: "https://images.unsplash.com/photo-1518614768202-35201360e161?q=80&w=200",
+                category: "experiences",
+                description: "Premium Super Bowl experience with luxury suite and exclusive after party access."
+            },
+            {
+                id: 28,
+                name: "Private Concert by Top Artist",
+                price: 5000000,
+                image: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?q=80&w=200",
+                category: "experiences",
+                description: "Personal performance by a world-famous music artist at your venue of choice."
+            },
+
+            // Art & Collectibles
+            {
+                id: 29,
+                name: "Salvator Mundi (Da Vinci)",
+                price: 450300000,
+                image: "https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?q=80&w=200",
+                category: "art",
+                description: "The world's most expensive painting, a Leonardo da Vinci masterpiece."
+            },
+            {
+                id: 30,
+                name: "Rare Blue Diamond",
+                price: 80000000,
+                image: "https://images.unsplash.com/photo-1551912167-939fe9732895?q=80&w=200",
+                category: "art",
+                description: "Extremely rare 15-carat blue diamond of exceptional quality."
+            },
+            {
+                id: 31,
+                name: "T-Rex Skeleton",
+                price: 31800000,
+                image: "https://images.unsplash.com/photo-1559813089-99ae0fc7186d?q=80&w=200",
+                category: "art",
+                description: "Complete fossilized skeleton of a Tyrannosaurus Rex dinosaur."
+            },
+            {
+                id: 32,
+                name: "Vintage Ferrari 250 GTO",
+                price: 70000000,
+                image: "https://images.unsplash.com/photo-1494905998402-395d579af36f?q=80&w=200",
+                category: "art",
+                description: "The holy grail of classic cars, one of only 36 ever built."
+            }
+        ];
+
+        // Global variables
+        let selectedBillionaire = null;
+        let moneyLeft = 0;
+        let cart = {};
+        let currentCategory = "all";
+
+        // Format number as currency
+        function formatMoney(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+
+        // Update money display
+        function updateMoneyDisplay() {
+            const moneyDisplay = document.getElementById('moneyLeft');
+            const moneyDisplayContainer = document.getElementById('moneyDisplay');
+            
+            moneyDisplay.textContent = formatMoney(moneyLeft);
+            
+            if (moneyLeft < 0) {
+                moneyDisplayContainer.classList.add('negative');
+            } else {
+                moneyDisplayContainer.classList.remove('negative');
+            }
+        }
+
+        // Initialize billionaire selection screen
+        function initBillionaireSelection() {
+            const container = document.getElementById('billionaireSelection');
+            container.innerHTML = '';
+            
+            billionaires.forEach(billionaire => {
+                const card = document.createElement('div');
+                card.className = 'billionaire-card bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer hover:shadow-xl';
+                card.innerHTML = `
+                    <img src="${billionaire.image}" alt="${billionaire.name}" class="w-full h-64 object-cover">
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-2">${billionaire.name}</h3>
+                        <p class="text-green-600 font-bold">${formatMoney(billionaire.netWorth)}</p>
+                    </div>
+                `;
+                
+                card.addEventListener('click', () => selectBillionaire(billionaire));
+                container.appendChild(card);
+            });
+        }
+
+        // Select billionaire and start game
+        function selectBillionaire(billionaire) {
+            selectedBillionaire = billionaire;
+            moneyLeft = billionaire.netWorth;
+            cart = {};
+            
+            // Update UI
+            document.getElementById('billionaireName').textContent = billionaire.name;
+            updateMoneyDisplay();
+            
+            // Switch screens
+            document.getElementById('selectionScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            
+            // Load items
+            loadItems(currentCategory);
+        }
+
+        // Load items by category
+        function loadItems(category) {
+            currentCategory = category;
+            const container = document.getElementById('itemsContainer');
+            container.innerHTML = '';
+            
+            // Update active category button
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                if (btn.dataset.category === category) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            // Filter items by category
+            const filteredItems = category === "all" 
+                ? items 
+                : items.filter(item => item.category === category);
+            
+            // Create item cards
+            filteredItems.forEach(item => {
+                const quantity = cart[item.id] || 0;
+                
+                const card = document.createElement('div');
+                card.className = 'item-card bg-white rounded-xl shadow-md overflow-hidden';
+                card.innerHTML = `
+                    <div class="relative">
+                        <img src="${item.image}" alt="${item.name}" class="w-full h-48 object-cover">
+                        <div class="absolute bottom-0 left-0 bg-blue-600 text-white px-3 py-1 rounded-tr-lg font-bold">
+                            ${formatMoney(item.price)}
+                        </div>
+                    </div>
+                    <div class="p-5">
+                        <h3 class="text-lg font-bold mb-2">${item.name}</h3>
+                        <p class="text-gray-600 text-sm mb-4 h-12 overflow-hidden">${item.description}</p>
+                        
+                        <div class="flex items-center justify-between mt-2">
+                            <div class="flex items-center">
+                                <span class="counter-btn minus" data-id="${item.id}">-</span>
+                                <span class="counter-num" id="count-${item.id}">${quantity}</span>
+                                <span class="counter-btn plus" data-id="${item.id}">+</span>
+                            </div>
+                            <span class="text-gray-600 text-sm" id="total-${item.id}">
+                                ${quantity > 0 ? formatMoney(item.price * quantity) : ''}
+                            </span>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+            
+            // Add event listeners to counter buttons
+            document.querySelectorAll('.counter-btn.minus').forEach(btn => {
+                btn.addEventListener('click', () => decreaseQuantity(parseInt(btn.dataset.id)));
+            });
+            
+            document.querySelectorAll('.counter-btn.plus').forEach(btn => {
+                btn.addEventListener('click', () => increaseQuantity(parseInt(btn.dataset.id)));
+            });
+        }
+
+        // Increase item quantity
+        function increaseQuantity(itemId) {
+            const item = items.find(i => i.id === itemId);
+            
+            if (!item) return;
+            
+            cart[itemId] = (cart[itemId] || 0) + 1;
+            moneyLeft -= item.price;
+            
+            updateQuantityDisplay(itemId);
+            updateMoneyDisplay();
+        }
+
+        // Decrease item quantity
+        function decreaseQuantity(itemId) {
+            if (!cart[itemId] || cart[itemId] <= 0) return;
+            
+            const item = items.find(i => i.id === itemId);
+            
+            if (!item) return;
+            
+            cart[itemId]--;
+            moneyLeft += item.price;
+            
+            if (cart[itemId] <= 0) {
+                delete cart[itemId];
+            }
+            
+            updateQuantityDisplay(itemId);
+            updateMoneyDisplay();
+        }
+
+        // Update quantity display for an item
+        function updateQuantityDisplay(itemId) {
+            const item = items.find(i => i.id === itemId);
+            const quantity = cart[itemId] || 0;
+            
+            const countElement = document.getElementById(`count-${itemId}`);
+            const totalElement = document.getElementById(`total-${itemId}`);
+            
+            if (countElement) {
+                countElement.textContent = quantity;
+            }
+            
+            if (totalElement) {
+                totalElement.textContent = quantity > 0 ? formatMoney(item.price * quantity) : '';
+            }
+        }
+
+        // Generate receipt
+        function generateReceipt() {
+            const receiptContent = document.getElementById('receiptContent');
+            receiptContent.innerHTML = '';
+            
+            let totalSpent = 0;
+            let hasItems = false;
+            
+            // Group items by category
+            const categorizedItems = {};
+            
+            for (const [itemId, quantity] of Object.entries(cart)) {
+                if (quantity <= 0) continue;
+                
+                const item = items.find(i => i.id === parseInt(itemId));
+                if (!item) continue;
+                
+                hasItems = true;
+                totalSpent += item.price * quantity;
+                
+                if (!categorizedItems[item.category]) {
+                    categorizedItems[item.category] = [];
+                }
+                
+                categorizedItems[item.category].push({
+                    item: item,
+                    quantity: quantity
+                });
+            }
+            
+            if (!hasItems) {
+                receiptContent.innerHTML = `
+                    <div class="py-6 text-center text-gray-500">
+                        <i class="fas fa-shopping-cart text-4xl mb-4"></i>
+                        <p>You haven't bought anything yet.</p>
+                    </div>
+                `;
+            } else {
+                // Create category sections
+                for (const [category, items] of Object.entries(categorizedItems)) {
+                    // Create category header
+                    const categoryHeader = document.createElement('div');
+                    categoryHeader.className = 'py-2 font-bold text-lg capitalize bg-gray-100 px-3 rounded mt-4';
+                    categoryHeader.textContent = category;
+                    receiptContent.appendChild(categoryHeader);
+                    
+                    // Create items
+                    items.forEach(({item, quantity}) => {
+                        const itemElement = document.createElement('div');
+                        itemElement.className = 'py-3 px-2 flex justify-between items-center';
+                        itemElement.innerHTML = `
+                            <div>
+                                <span class="font-medium">${item.name}</span>
+                                <span class="text-gray-500 ml-2">x${quantity}</span>
+                            </div>
+                            <div class="font-semibold">${formatMoney(item.price * quantity)}</div>
+                        `;
+                        receiptContent.appendChild(itemElement);
+                    });
+                }
+            }
+            
+            // Update totals
+            document.getElementById('totalSpent').textContent = formatMoney(totalSpent);
+            document.getElementById('receiptMoneyLeft').textContent = formatMoney(moneyLeft);
+            
+            // Show modal
+            document.getElementById('receiptModal').classList.remove('hidden');
+        }
+
+        // Initialize the application
+        function init() {
+            // Initialize billionaire selection
+            initBillionaireSelection();
+            
+            // Set event listeners for category buttons
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.addEventListener('click', () => loadItems(btn.dataset.category));
+            });
+            
+            // Back button
+            document.getElementById('backButton').addEventListener('click', () => {
+                document.getElementById('gameScreen').classList.add('hidden');
+                document.getElementById('selectionScreen').classList.remove('hidden');
+            });
+            
+            // Receipt buttons
+            document.getElementById('viewReceiptBtn').addEventListener('click', generateReceipt);
+            document.getElementById('closeReceiptBtn').addEventListener('click', () => {
+                document.getElementById('receiptModal').classList.add('hidden');
+            });
+            
+            // Close receipt when clicking outside
+            document.getElementById('receiptModal').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('receiptModal')) {
+                    document.getElementById('receiptModal').classList.add('hidden');
+                }
+            });
+        }
+
+        // Start the app
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
 </body>
 </html>
